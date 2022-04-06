@@ -44,7 +44,7 @@ for case_idx = 1:n_reps %1:50 %%%13%49:500
 
     % METHOD 1 (slower but less biased)
     [params_sequential, true_value_est, fval1, grads, hessians, sequential_timer] = MCEM_algorithm_full(data, true_data, N_monte_carlo, n_times, seed, end_time, bin_width, n_splits, 'sequential');
-    % METHOD 2 (quicker but slightly more biased)
+    % METHOD 2 (quicker but more biased)
     [params_uniform, true_value_est, fval1, grads, hessians, uniform_timer] = MCEM_algorithm_full(data, true_data, N_monte_carlo, n_times, seed, end_time, bin_width, n_splits, 'uniform');
 
     disp('Uniform MCEM Parameter Estimates')

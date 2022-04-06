@@ -49,28 +49,14 @@ for i=1:m %+length(future)   %m   % length(all_events)-length(history)-1
 end
 pdf_val = product_term*exp(-v*(all_events(end)-all_events(point_n)));
 interim_pdf_val = pdf_val;
-%test_prod_ub = 1 - exp(-v*(next_bin-all_events(end)))*exp(alpha/beta * (sum(exp(-beta*(next_bin-all_events(2:end)))) - sum(exp(-beta*(all_events(end)-all_events(2:end))))));
-%pdf_val_test = pdf_val*(1-test_prod_ub);
-%interim_pdf_val = -pdf_val*(1-test_prod_ub);
 
-% TRUNCATION METHOD - uncomment
+% TRUNCATION METHOD 
 upper_cdf = 1;
-%ub_times = [0;history;transpose(miss_times(2:end));max_bin]; % OG
-%ub_times = [0;history;transpose(miss_times(2:end));max_bin;future]; %OG % +1 to deal with  edge effect?
+
 ub_times = [0;history;transpose(miss_times(1:end-1));max_bin];
 middle_prod = 1;
 for i=1:m
-    %ith_prod = 1 - exp(-v*(ub_times(end-i+1)-ub_times(end-i)))*exp(alpha/beta * (sum(exp(-beta*(ub_times(end-i+1)-ub_times(1:end-i)))) - sum(exp(-beta*(ub_times(end-i)-ub_times(1:end-i)))))); %OG
     ith_prod = 1 - exp(-v*(ub_times(point_n+i)-ub_times(point_n+i-1)))*exp(alpha/beta * (sum(exp(-beta*(ub_times(point_n+i)-ub_times(2:point_n+i-1)))) - sum(exp(-beta*(ub_times(point_n+i-1)-ub_times(2:point_n+i-1)))))); % same as OG
-    % OR
-    %ith_prod = 1 - exp(-v*(ub_times(point_n+i)-all_events(point_n+i-1)))*exp(alpha/beta * (sum(exp(-beta*(ub_times(point_n+i)-all_events(2:point_n+i-1)))) - sum(exp(-beta*(all_events(point_n+i-1)-all_events(2:point_n+i-1))))));
-    %ith_prod = 1 - exp(-v*(max_bin-all_events(end-i)))*exp(alpha/beta * (sum(exp(-beta*(max_bin-all_events(1:end-i)))) - sum(exp(-beta*(all_events(end-i)-all_events(1:end-i))))));
-%     if i==1 % for rectangular idea
-%         t1_val = ith_prod;
-%     end
-%     if i==m % for rectangular idea
-%         bplus_val = ith_prod;
-%     end
     if (i>=2 && i <= m-1)
         middle_prod = middle_prod * ith_prod;
     end
@@ -81,42 +67,13 @@ final_cdf_val = 1 - exp(-v*(lb_times(point_n+m)-lb_times(point_n+m-1)))*exp(alph
 first_cdf_val = 1 - exp(-v*(max_bin-bin_width-lb_times(point_n)))*exp(alpha/beta * (sum(exp(-beta*(max_bin-bin_width-lb_times(2:point_n)))) -sum(exp(-beta*(lb_times(point_n)-lb_times(2:point_n))))));
 lower_cdf = middle_prod * final_cdf_val * first_cdf_val;
 
-
-% PREVIOUS TRUNCATION: sometimes neg. - unused now
-% lower_cdf = 1;
-% lb_times = [0;history;max_bin-1;transpose(miss_times(1:end-1))]; % OG
-% %lb_times = [0;history;max_bin-1;transpose(miss_times(1:end-1));future]; %OG
-% %lb_times = [0;history;max_bin-1;transpose(miss_times(2:end))];
-% 
-% for i=1:m  % if this is m-1 then this is much larger than upper_cdf
-%     ith_prod = 1 - exp(-v*(lb_times(point_n+i)-lb_times(point_n+i-1)))*exp(alpha/beta * (sum(exp(-beta*(lb_times(point_n+i)-lb_times(2:point_n+i-1)))) -sum(exp(-beta*(lb_times(point_n+i-1)-lb_times(2:point_n+i-1)))))); % OG
-%     %ith_prod = 1 - exp(-v*(lb_times(point_n+i)-all_events(point_n+i-1)))*exp(alpha/beta * (sum(exp(-beta*(lb_times(point_n+i)-all_events(2:point_n+i-1)))) -sum(exp(-beta*(all_events(point_n+i-1)-all_events(2:point_n+i-1)))))); 
-%     %ith_prod = 1 - exp(-v*(lb_times(end-i+1)-all_events(end-i)))*exp(alpha/beta * (sum(exp(-beta*(lb_times(end-i+1)-all_events(1:end-i)))) - sum(exp(-beta*(all_events(end-i)-all_events(1:end-i))))));
-%     %ith_prod = 1 - exp(-v*(max_bin-1-all_events(end-i)))*exp(alpha/beta * (sum(exp(-beta*(max_bin-1-all_events(1:end-i)))) - sum(exp(-beta*(all_events(end-i)-all_events(1:end-i))))));
-%     lower_cdf = ith_prod * lower_cdf;
-% end
-
-% Testing rectanglar idea:  seems to underestimate parameters, unused now
-% lower_cdf is F(b-,...,t_m)
-% upper_cdf is F(t_1,...,b+)
-% cross1_cdf is F(t_1,...,t_m) = t1_val*middle_prod*final_cdf_val
-% cross2_cdf is F(b-,...,b+) = first_cdf_val*middle_prod*bplus_val
-% cross1_cdf = t1_val*middle_prod*final_cdf_val;
-% cross2_cdf = first_cdf_val*middle_prod*bplus_val;
-% total_cdf = upper_cdf + lower_cdf - cross1_cdf - cross2_cdf;
-
 if upper_cdf-lower_cdf ~= 0
-    conditional_pdf_val = pdf_val/(upper_cdf-lower_cdf); %OG with abs()   %%%%((upper_cdf-lower_cdf+ref_cdf));  %
+    conditional_pdf_val = pdf_val/(upper_cdf-lower_cdf); 
 else
     disp('0 for max_cond_pdf denom')
     conditional_pdf_val = pdf_val;
 end
-%conditional_pdf_val = pdf_val*middle_prod/(upper_cdf-lower_cdf); 
-%conditional_pdf_val = pdf_val_test/cdf_total_diff;
-%conditional_pdf_val = pdf_val/total_cdf; %total_cdf;
-
 % Negate so that getting minimum gives desired result
-%pdf_val = -pdf_val;
 pdf_val = -conditional_pdf_val;
 
 

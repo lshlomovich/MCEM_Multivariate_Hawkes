@@ -58,37 +58,13 @@ end
             if total_in_bin > 0 %%%%%%%%%%%% 1 or zero depending %%%%%%%%%%%%
                 % STARTING POINTS
                 rand_start = bin_width*sort(rand(1,total_in_bin));
-%                 while (min(rand_start)<0.05) || (max(rand_start)>0.95) || min(diff(rand_start))<0.05
-%                     rand_start = bin_width*sort(rand(1,total_in_bin));
-%                 end
-                
-                %rand_start = rand_start(2:end-1);
-                %rand_start = sort(betarnd(2,2,1,total_in_bin));
-                % to prevent blowing up?
-%                 rand_start2 = bin_width*((1/(total_in_bin+1)):(1/(total_in_bin+1)):1-(1/(total_in_bin+1)));
-%                 rand_start = (3*rand_start1 + rand_start2)/4;
-                %rand_start = sort(rand_start + 0.1*rand(1,total_in_bin));
-                %rand_start = rand_start + (1/(total_in_bin+1) - (1/(total_in_bin+1) * rand(1,total_in_bin)));
-                % OPTIONS FOR MINIMISE FN
-                options1 = optimoptions(@fmincon,'MaxIter',2e4,'MaxFunEvals',2e4,'TolFun',1e-20,'TolX',1e-20,'Display','off');  %'FinDiffType','central',
-                %options2 = optimoptions(@simulannealbnd,'Display','off'); 
-                %options3 = optimoptions('patternsearch','Display','off');
-                %options4 = optimoptions(@fminunc,'Display','off');
 
-                %                 options5 = optimoptions(@fmincon,'Display','off','MaxFunctionEvaluations',1e5,'StepTolerance',1e-4,'Algorithm','interior-point'); %'Algo','sqp');
+                options1 = optimoptions(@fmincon,'MaxIter',2e4,'MaxFunEvals',2e4,'TolFun',1e-20,'TolX',1e-20,'Display','off');  %'FinDiffType','central',
                 options5 = optimoptions(@fmincon,'Display','off','MaxFunctionEvaluations',1e5,'StepTolerance',1e-4,'Algorithm','sqp'); %'Algo','sqp');
-%                 st1 = tic;
-                %[bin_times,~] = simulannealbnd(@(theta) max_cond_pdf(theta,time_points,binub,v,A,B), rand_start+binub-1,[],[],options2); % makes worse?, [max_bin-1,max_bin-1,max_bin-1],[max_bin,max_bin,max_bin]);
-                %[bin_times,~] = patternsearch(@(theta) max_cond_pdf(theta,time_points,binub,v,A,B), rand_start+binub-1,[],[],[],[],[],[],[],options3);%,[],[],options2); % makes worse?, [max_bin-1,max_bin-1,max_bin-1],[max_bin,max_bin,max_bin]);
-                %[bin_times,~] = fminunc(@(theta) max_cond_pdf(theta,time_points,binub,binub,v,A,B), rand_start+binub-1,options4);
-%                 [bin_times,fval] = fmincon(@(theta) max_cond_pdf(theta,time_points,bin_width,binub,v,A,B), rand_start+binlb,[],[],[],[],repmat(binlb,size(rand_start)),repmat(binub,size(rand_start)),[],options1);
-%                 bin_times = sort(bin_times);
                 
                 [bin_times,fval] = fmincon(@(theta) max_cond_pdf(theta,time_points,bin_width,binub,v,A,B), rand_start+binlb,[],[],[],[],[],[],[],options5);
                                
                 fvals = [fvals;fval];
-                %disp('annealbnd time:')
-%                 disp(toc(st1))
                 % ADDITION OF LIKILHOOD COMPUTATION
                 [val1,val2] = max_cond_pdf(bin_times, time_points, bin_width, binub, v,A,B);
                 values_list = [values_list;val2];
@@ -117,22 +93,20 @@ end
                     log_ll = log_ll + log(new_fval);
                 else
                     % Use inv cdf
-%                     st2 = tic;
                     F_ub_tp = 1-exp(-( v*(binub-time_points(end)) + A/B * S_iter(end) * (1 - exp(-B*(binub-time_points(end)))) ));
                     F_lb_tp = 1-exp(-( v*(binlb-time_points(end)) + A/B * S_iter(end) * (1 - exp(-B*(binlb-time_points(end)))) ));
-                    % the sym makes it way way slower - for very long
-                    % processes 
+                    
                     exp_F_ub_tp = exp(-( v*(binub-time_points(end)) + A/B * S_iter(end) * (1 - exp(-B*(binub-time_points(end)))) )); %exp(sym(-( v*(binub-time_points(end)) + A/B * S_iter(end) * (1 - exp(-B*(binub-time_points(end)))) )));
                     exp_F_lb_tp = exp(-( v*(binlb-time_points(end)) + A/B * S_iter(end) * (1 - exp(-B*(binlb-time_points(end)))) )); %exp(sym(-( v*(binlb-time_points(end)) + A/B * S_iter(end) * (1 - exp(-B*(binlb-time_points(end)))) )));
-                    c = exp_F_lb_tp - exp_F_ub_tp; %F_ub_tp - F_lb_tp;
+                    c = exp_F_lb_tp - exp_F_ub_tp; 
                     r = rand(1);
-                    %K = -log(1 - r*c - (F_lb_tp)) - (A/B)*S_iter(end);
+
                     K = -log(-r*c + exp_F_lb_tp) - (A/B)*S_iter(end);
                     old_test_time = time_points(end)-log(rand(1))/v;
                     tol = 1;
                     while tol > 0.0001  %vpa(tol) % if sym is used
-                        %log_U = log(1 - r*c - (F_lb_tp)); %-K(ii) - (A/B)*S_iter(ii-1);  % so as to use the same rand number
-                        log_U = log(-r*c + exp_F_lb_tp); %-K(ii) - (A/B)*S_iter(ii-1);  % so as to use the same rand number
+                        
+                        log_U = log(-r*c + exp_F_lb_tp); 
                         func_val = log_U + v*(old_test_time-time_points(end)) + A/B*S_iter(end)*(1-exp(-B*(old_test_time - time_points(end))));
                         diff_func_val = v + A*S_iter(end)*exp(-B*(old_test_time - time_points(end)));
                         test_time = old_test_time - (func_val)/(diff_func_val);
@@ -150,11 +124,10 @@ end
                     % pdf of single timepoint is f_T(t)/c
                     A_tp = exp(-B*(test_time-time_points(end)))*(1+A_s(end));
                     new_fval = (v+A_tp)*exp(-v*(test_time-time_points(end)))*exp(1./B * (A_tp - A_s(end) -1));
-                    log_ll = log_ll + log(new_fval); %/c? we rescale it so unsure
+                    log_ll = log_ll + log(new_fval); 
                     
                     time_points = [time_points;test_time];
-%                     disp('sim time:')
-%                     disp(toc(st2))
+
                     % Update S_iter for the next step
                     for jj=1:total_in_bin
                         S_iter = [S_iter;exp(-B*(time_points(end-total_in_bin+jj)-time_points(end-total_in_bin+jj-1)))*S_iter(end) + 1];
@@ -172,21 +145,3 @@ end
 end
 
 
-% TESTS
-
-% test_mean_neg1 = [];
-% for a_val = 0.1:0.1:1.1
-% test_mean_neg1 = [test_mean_neg1; disc_time_hp(test_counts, 3, [0.2, a_val, 1.2], bin_width, 1)];
-% end
-
-
-% bin1 = ; % get the bin which the first event is in
-% bin1_l = bin_width*(bin1-1); % lower bound of the bin
-% bin1_u = bin_width*bin1; % upper bound of the bin
-% % First time point is exponentially distributed between the bounds of the
-% % bin which we know it is in
-% 
-% c2 = 1-exp(-v*(bin_width-t1) - alpha/beta + (alpha/beta)*exp(-1.2*(bin_width-t1)) );
-% K2 = log(1-rand(1)*c2) + alpha/beta;
-% 
-% t2 = 1/beta * lambertw(alpha/v * exp(beta*K2/v)) - K2/v + t1;

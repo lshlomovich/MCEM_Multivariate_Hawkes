@@ -1,4 +1,4 @@
-function [log_ll, grad, hessian] = complete_likelihood(times, v, a, b, end_time, p)
+function [neg_log_ll, grad, hessian] = complete_likelihood(times, v, a, b, end_time, p)
 
 % times:           the time stamps 
 % Note, in the univariate case this has been vectorised so it is expecting
@@ -16,12 +16,12 @@ hessian = -1e10*ones(numel([v,a,b]),numel([v,a,b]));
 
 % Conditions for stationarity
 if length(v)>1 && eigs(a./b, 1, 'lm')-1 >= 0
-    log_ll = inf; % set neg ll to inf
+    neg_log_ll = inf; % set neg ll to inf
     %disp('non-stationary')
 elseif min(min(a)) < 0
-    log_ll = inf; 
+    neg_log_ll = inf; 
 elseif length(v) == 1 && a>b
-    log_ll = inf; % set neg ll to inf
+    neg_log_ll = inf; % set neg ll to inf
     %disp('non-stationary')
 end
 
@@ -46,7 +46,7 @@ if p==1
     log_ll = -v*end_time + (a/b)*sum(exp(-b*(end_time-times))-1,2) + sum(log(v + a*A_s),2); 
     % alternative: https://uk.mathworks.com/matlabcentral/fileexchange/68936-log-likelihood-of-the-hawkes-process
     
-    log_ll = -log_ll; % NEGATIVE LL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    neg_log_ll = -log_ll; % NEGATIVE LL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     exp_term = exp(-b*(end_time-times)); % yields matrix of same size as time_diffs
     gradient_baseline = -end_time + sum(1./(v+a*A_s),2);  
     gradient_A = sum((1/b)*(exp_term-1),2) + sum(A_s./(v+a*A_s),2);
@@ -126,9 +126,9 @@ elseif p==2 % unvectorised - ie in complete_sum_liklihood we loop over samples
     log_ll1 = -v(1)*end_time + ll1_term1 + ll1_term2;
     log_ll2 = -v(2)*end_time + ll2_term1 + ll2_term2;
     
-    log_ll = log_ll1 + log_ll2;
+    neg_log_ll = log_ll1 + log_ll2;
     
-    log_ll = -log_ll; 
+    neg_log_ll = -neg_log_ll; 
     exp_term11 = exp(-b(1,1)*(end_time-times1)); 
     exp_term12 = exp(-b(1,2)*(end_time-times2)); 
     exp_term21 = exp(-b(2,1)*(end_time-times1)); 
@@ -366,10 +366,10 @@ elseif p==3
     log_ll2 = -v(2)*end_time + ll2_term1 + ll2_term2;
     log_ll3 = -v(3)*end_time + ll3_term1 + ll3_term2;
     
-    log_ll = log_ll1 + log_ll2 + log_ll3;   
+    neg_log_ll = log_ll1 + log_ll2 + log_ll3;   
     
     % Gradient 
-    log_ll = -log_ll; 
+    neg_log_ll = -neg_log_ll; 
     exp_term11 = exp(-b(1,1)*(end_time-times1)); 
     exp_term12 = exp(-b(1,2)*(end_time-times2)); 
     exp_term13 = exp(-b(1,3)*(end_time-times3)); 

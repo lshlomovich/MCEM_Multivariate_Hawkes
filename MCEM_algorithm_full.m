@@ -15,7 +15,7 @@ function [params, true_value_est, fval1, grads, hessians, mcem_timer] = MCEM_alg
     % n_splits:           number of times to try splitting N^{p+1} before
     % selecting the 'best' N^{1}, ..., N^{p}
     
-    % TO DO: tolerance/convergence threshold will be added in
+
     
     p = size(data,2);
     params = zeros(p*n_times,p); 
@@ -34,7 +34,7 @@ function [params, true_value_est, fval1, grads, hessians, mcem_timer] = MCEM_alg
     if p==1
         params(1,:) = sort(rand(1,p));
     elseif p==2
-        % note: consider making this random
+        % note: can make this random
         params = [[0.1;0.1],[0.4,0.2;0.2,0.4],[1.2,0.6;0.6,1.2]];
     elseif p==3
 %         params = [[0.1;0.1;0.1],[0.4,0.2,0.1;0.2,0.4,0.1;0.1,0.1,0.4],[1.2,0.6,0.6;0.6,1.2,0.6;0.6,0.6,1.2]];
@@ -46,10 +46,10 @@ function [params, true_value_est, fval1, grads, hessians, mcem_timer] = MCEM_alg
         %params = [[0.1;0.1;0.1]*(0.5*rand(1)+0.5),[0.4,0.2,0.1;0.2,0.4,0.1;0.1,0.1,0.4]*(0.7*rand(1)+0.5),[1.2,0.6,0.6;0.6,1.2,0.6;0.6,0.6,1.2]*(0.7*rand(1)+0.5)];
     end
     
-    if iscell(true_data) %true_data{1} ~= 0 || true_data ~= 0
+    if iscell(true_data) 
         if p==2 || p==3
             if p==2
-                % note: consider making this random
+                % note: can make this random
                 params = [[0.1;0.1],[0.4,0.2;0.2,0.4],[1.2,0.6;0.6,1.2]];
                 E_test1 = true_data{1}; E_test2 = true_data{2};
                 T_true{1} = E_test1; T_true{2} = E_test2;
@@ -126,7 +126,6 @@ function [params, true_value_est, fval1, grads, hessians, mcem_timer] = MCEM_alg
                 summed_data = sum(data,2); % the superposition process
                 if p > 1
                     [Tsuperpose, ~, log_density_value] = disc_time_hp_grid(summed_data, 1, sum_params, bin_width, 1); 
-%                     [Tsuperpose, ~, log_density_value] = disc_time_hp_grid(summed_data, 1, super_params, bin_width, 1); 
                     log_density(i) = log_density_value;
                 else
                     disp('have not coded this option')
@@ -136,7 +135,7 @@ function [params, true_value_est, fval1, grads, hessians, mcem_timer] = MCEM_alg
         
             % Then split T3
             if p==2
-                %[T1, T2] = split_times2(Tsuperpose,data,bin_width);
+                
                 [T1, T2, ~] = split_times2_iter(Tsuperpose, data, bin_width, n_splits, current_params, end_time);
                 log_prob_split = 0;
                 for ii = 1:length(summed_data)
@@ -187,10 +186,8 @@ function [params, true_value_est, fval1, grads, hessians, mcem_timer] = MCEM_alg
             else
                 zhatMv = params(end-p+1:end,:);
             end
-%             options1 = optimoptions('fmincon','MaxIter',1e3,'MaxFunEvals',1e3,'Algo','trust-region-reflective','TolFun',1e-4,'TolX',1e-3,'GradObj','on','Hessian','on','Display','off','DerivativeCheck','off');
+
             options1 = optimoptions('fmincon','MaxIter',1e3,'MaxFunEvals',1e3,'Algo','trust-region-reflective','TolFun',1e-5,'TolX',1e-4,'GradObj','on','Hessian','on','Display','off','DerivativeCheck','off');
-%             options1_nohess = optimoptions('fmincon','MaxIter',2e4,'MaxFunEvals',2e4,'Algo','trust-region-reflective','TolFun',1e-3,'TolX',1e-3,'GradObj','on','Hessian','off','Display','off','DerivativeCheck','off');
-            %options2 = optimset('MaxIter',2e4,'MaxFunEvals',2e4,'Algo','interior-point','TolFun',1e-3,'TolX',1e-3,'GradObj','on','Display','off','DerivativeCheck','off');
 
             myfunMv_alt = @(z) complete_sum_likelihood(T, z(:,1),z(:,2:2+p-1),z(:,2+p:end), end_time, weights_raw_rescaled,p, N_monte_carlo); % weights3 doesnt have NaNs, weights_alt most logical, weights_rescaled is an attempt to stop NaNs
             weights1_time=tic; [new_params, fval1(j)] = fmincon(myfunMv_alt,zhatMv,[],[],[],[],[],[],[],options1); w1_time = toc(weights1_time); disp(w1_time)
@@ -199,19 +196,12 @@ function [params, true_value_est, fval1, grads, hessians, mcem_timer] = MCEM_alg
             disp(new_params)
             eps = norm(new_params - params(end-1:end,:));
             params = [params;new_params];
-            %%params_alt = [params_alt;new_params_alt];
-%             disp(params(end-p+1:end,:))
             disp(fval1(j))
             %[sum(params(3:2:end,:),1);sum(params(4:2:end,:),1)]/j
         else
             zhat = params(j,:); 
-            %lb = [-Inf -Inf -Inf]; %[0 0 0];
-            %ub = [Inf Inf Inf];
-            %A = []; b=[]; Aeq=[]; beq=[]; nonlcol = [];
-            %myfun = @(z) -complete_sum_likelihood(T, z(1),z(2),z(3), end_time, weights, p, N_monte_carlo);  %Negative Q function to be minimised.
             myfun = @(z) complete_sum_likelihood(T, z(:,1),z(:,2:2+p-1),z(:,2+p:end), end_time, weights_raw_rescaled,p, N_monte_carlo); 
 
-            %options = optimset('MaxIter',2e4,'MaxFunEvals',2e4,'FinDiffType','central','TolFun',1e-4,'TolX',1e-4);
             options1 = optimoptions('fmincon','MaxIter',2e4,'MaxFunEvals',2e4,'Algo','trust-region-reflective','TolFun',1e-4,'TolX',1e-4,'GradObj','on','Hessian','on','Display','off','DerivativeCheck','off');
 
             weights1_time=tic; [params(j+1,:), fval1(j),~,~,~,grad,hessian] = fmincon(myfun,zhat,[],[],[],[],[],[],[],options1); w1_time = toc(weights1_time); disp(w1_time)
